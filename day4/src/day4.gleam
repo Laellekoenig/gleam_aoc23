@@ -61,50 +61,13 @@ fn score_card_helper(winners: List(Int), selected: List(Int), res: Int) -> Int {
   let first_in_winner = selected
   |> list.first
   |> result.map(list.contains(winners, _))
+  |> result.unwrap(False)
 
   case selected, res, first_in_winner {
     [], r, _ -> r
-    [_, ..rest], 0, Ok(True) -> score_card_helper(winners, rest, 1)
-    [_, ..rest], r, Ok(True) -> score_card_helper(winners, rest, r * 2)
+    [_, ..rest], 0, True -> score_card_helper(winners, rest, 1)
+    [_, ..rest], r, True -> score_card_helper(winners, rest, r * 2)
     [_, ..rest], r, _ -> score_card_helper(winners, rest, r)
-  }
-}
-
-fn insert_cards(cards: List(Card), stack: List(Card)) -> List(Card) {
-  case cards {
-    [] -> stack
-    [x, ..rest] -> insert_cards(rest, insert_card(x, stack))
-  }
-}
-
-fn insert_card(card: Card, stack: List(Card)) -> List(Card) {
-  let first_has_same_id = stack
-  |> list.first
-  |> result.map(fn(x) { x.number == card.number })
-  |> result.unwrap(False)
-
-  case stack, first_has_same_id {
-    [], _ -> [card]
-    s, True -> list.append([card], s)
-    [x, ..rest], False -> {
-      list.append([x], insert_card(card, rest))
-    }
-  }
-}
-
-fn remove_duplicates(lst: List(a)) -> List(a) {
-  remove_duplicates_helper(lst, [])
-}
-
-fn remove_duplicates_helper(lst: List(a), res: List(a)) -> List(a) {
-  case lst {
-    [] -> res
-    [x, ..rest] -> {
-      case list.contains(res, x) {
-        True -> remove_duplicates_helper(rest, res)
-        False -> remove_duplicates_helper(rest, list.append(res, [x]))
-      }
-    }
   }
 }
 
