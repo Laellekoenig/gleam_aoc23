@@ -6,7 +6,7 @@ import gleam/list
 import gleam/int
 
 pub type Card {
-  Card(number: Int, winners: List(Int), selected: List(Int))
+  Card(number: Int, winners: List(Int), selected: List(Int), n_instances: Int, score: Result(Int, Nil))
 }
 
 fn parse_num_string(s: String) -> List(Int) {
@@ -50,7 +50,7 @@ fn parse_card(s: String) -> Card {
   |> string.trim
   |> parse_num_string
 
-  Card(n, winners, selected)
+  Card(n, winners, selected, 1, Error(Nil))
 }
 
 fn score_card(card: Card) -> Int {
@@ -108,25 +108,54 @@ fn remove_duplicates_helper(lst: List(a), res: List(a)) -> List(a) {
   }
 }
 
+fn pt2_score_card(card: Card) -> Int {
+  pt2_score_card_helper(card.winners, card.selected, 0)
+}
+
+fn pt2_score_card_helper(winners: List(Int), selected: List(Int), score: Int) -> Int {
+  let first_in_winners = selected
+  |> list.first
+  |> result.map(fn(x) { list.contains(winners, x) })
+  |> result.unwrap(False)
+
+  case selected, first_in_winners {
+    [], _ -> score
+    [_, ..rest], True -> pt2_score_card_helper(winners, rest, score + 1)
+    [_, ..rest], False -> pt2_score_card_helper(winners, rest, score)
+  }
+}
+
 fn pt2_count_cards(cards: List(Card)) -> Int {
   pt2_count_cards_helper(cards, 0)
 }
 
 fn pt2_count_cards_helper(cards: List(Card), res: Int) -> Int {
   case cards {
-    [] -> res - 1
+    [] -> res
     [x, ..rest] -> {
-      let score = score_card(x)
+      let score = case x.score {
+        Ok(s) -> s
+        _ -> pt2_score_card(x)
+      }
 
-      let #(new_cards, _) = rest
-      |> remove_duplicates
-      |> list.filter(fn(y) { y.number != x.number })
+      let #(to_duplicate, rest) = rest
       |> list.split(score)
 
-      let new_res = new_cards
-      |> insert_cards(rest)
+      let duplicated = to_duplicate
+      |> list.map(fn(x) { Card(..x, n_instances: x.n_instances + 1) })
 
-      pt2_count_cards_helper(new_res, res + 1)
+      let rest = list.append(duplicated, rest)
+
+      let cards_left = x.n_instances - 1
+      case cards_left {
+        n if n > 0 -> {
+          let updated_x = Card(..x, n_instances: cards_left)
+          pt2_count_cards_helper(list.append([updated_x], rest), res + 1)
+        }
+        _ -> {
+          pt2_count_cards_helper(rest, res + 1)
+        }
+      }
     }
   }
 }
@@ -147,10 +176,10 @@ pub fn main() {
   io.println("-- Part 1 --")
   io.println("Sum: " <> p1)
 
-  //let p2 = cards
-  //|> pt2_count_cards
-  //|> int.to_string
+  let p2 = cards
+  |> pt2_count_cards
+  |> int.to_string
 
-  //io.println("-- Part 2 --")
-  //io.println("Number of cards: " <> p2)
+  io.println("-- Part 2 --")
+  io.println("Number of cards: " <> p2)
 }
